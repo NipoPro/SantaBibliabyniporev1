@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Santa Biblia Reina Valera 1960 — BYNIPO</title>
+    <meta name="description" content="Santa Biblia Reina Valera 1960 con lectura por voz, búsqueda temática y juegos bíblicos. Desarrollada por BYNIPO." />
+    <meta name="author" content="BYNIPO" />
+    <meta name="theme-color" content="#b45309" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Biblia BYNIPO" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Santa Biblia Reina Valera 1960 — BYNIPO" />
+    <meta property="og:title" content="Santa Biblia Reina Valera 1960 — BYNIPO" />
+    <meta property="og:description" content="Lectura bíblica por voz, búsqueda temática y juegos bíblicos." />
+    <meta property="og:image" content="./icon.svg" />
+    <script>
+    /* Only runs inside the BYNIPO Android WebView. On ordinary browsers the
+       browser's original speechSynthesis implementation remains untouched. */
+    (function () {
+      if (!window.AndroidTTS || typeof window.AndroidTTS.speak !== 'function') return;
+      var nativeSpeech = window.AndroidTTS;
+      var browserSpeech = window.speechSynthesis;
+      var tokenCounter = 0;
+      var activeUtterance = null;
+      var lastUtterance = null;
+      var activeToken = null;
+      var pauseTimer = null;
+      var shim = {
+        speaking: false, pending: false, paused: false,
+        getVoices: function () { try { return browserSpeech ? browserSpeech.getVoices() : []; } catch (_) { return []; } },
+        cancel: function () {
+          if (pauseTimer) clearTimeout(pauseTimer);
+          pauseTimer = null; activeToken = null; activeUtterance = null;
+          this.speaking = false; this.pending = false; this.paused = false;
+          try { nativeSpeech.stop(); } catch (_) {}
+        },
+        pause: function () {
+          if (!activeUtterance || this.paused) return;
+          this.paused = true;
+          var tokenAtPause = activeToken;
+          if (pauseTimer) clearTimeout(pauseTimer);
+          // The original app uses an immediate pause/resume keepalive. Delay the
+          // stop briefly so that keepalive pairs do not interrupt the narration.
+          pauseTimer = setTimeout(function () {
+            if (shim.paused && activeToken === tokenAtPause) {
+              try { nativeSpeech.stop(); } catch (_) {}
+              shim.speaking = false;
+            }
+            pauseTimer = null;
+          }, 350);
+        },
+        resume: function () {
+          if (!this.paused) return;
+          this.paused = false;
+          if (pauseTimer) clearTimeout(pauseTimer);
+          pauseTimer = null;
+          if (!this.speaking && lastUtterance) this.speak(lastUtterance);
+        },
+        speak: function (utterance) {
+          if (!utterance || !utterance.text) return;
+          if (pauseTimer) clearTimeout(pauseTimer);
+          pauseTimer = null;
+          this.paused = false;
+          activeUtterance = utterance;
+          lastUtterance = utterance;
+          activeToken = String(++tokenCounter);
+          this.speaking = true; this.pending = false;
+          var voiceName = utterance.voice && utterance.voice.name ? utterance.voice.name.toLowerCase() : '';
+          var gender = /male|hombre|mascul|jorge|pablo|diego|carlos|luis/.test(voiceName) && !/female|femen/.test(voiceName) ? 'male' : 'female';
+          try {
+            nativeSpeech.speak(String(utterance.text), activeToken, Number(utterance.rate || 1), gender);
+          } catch (_) {
+            this.speaking = false;
+            if (typeof utterance.onerror === 'function') utterance.onerror({ error: 'synthesis-failed' });
+          }
+        }
+      };
+      try { Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: shim }); }
+      catch (_) { try { window.speechSynthesis = shim; } catch (_) {} }
+      function activeFor(token) { return activeToken !== null && String(token) === activeToken && activeUtterance; }
+      window.onBibleNativeTtsStart = function (token) {
+        var utterance = activeFor(token);
+        if (!utterance) return;
+        shim.speaking = true;
+        if (typeof utterance.onstart === 'function') utterance.onstart();
+      };
+      window.onBibleNativeTtsDone = function (token) {
+        var utterance = activeFor(token);
+        if (!utterance) return;
+        shim.speaking = false; shim.pending = false;
+        if (shim.paused) return;
+        activeToken = null; activeUtterance = null;
+        if (typeof utterance.onend === 'function') utterance.onend();
+      };
+      window.onBibleNativeTtsError = function (token) {
+        var utterance = activeFor(token);
+        if (!utterance) return;
+        shim.speaking = false; shim.pending = false; activeToken = null; activeUtterance = null;
+        if (typeof utterance.onerror === 'function') utterance.onerror({ error: 'synthesis-failed' });
+      };
+    })();
+    </script>
+    <script src="./speech-tts-fix.js"></script>
+    <script>
+    // Truthful fallback for the precompiled preview: if a chapter could not be
+    // retrieved, show an explicit message instead of leaving a confusing blank area.
+    (function () {
+      var audioFirstSeenAt = null;
+      function checkChapterAvailability() {
+        var audio = document.getElementById('chapter_audio_player');
+        var notice = document.getElementById('chapter-load-failure-notice');
+        if (!audio) {
+          if (notice) notice.remove();
+          audioFirstSeenAt = null;
+          return;
+        }
+        if (audioFirstSeenAt === null) audioFirstSeenAt = Date.now();
+        if (document.querySelector('[id^="verse-"]')) {
+          if (notice) notice.remove();
+          return;
+        }
+        if (notice || Date.now() - audioFirstSeenAt < 7000) return;
+        notice = document.createElement('section');
+        notice.id = 'chapter-load-failure-notice';
+        notice.setAttribute('role', 'alert');
+        notice.style.cssText = 'margin:16px 0;padding:20px;border:1px solid #d6a548;border-radius:16px;background:#fff8e6;color:#292017;text-align:center;';
+        var title = document.createElement('h3');
+        title.textContent = 'Capítulo no disponible';
+        title.style.cssText = 'font-size:1.15rem;font-weight:700;margin:0 0 8px;';
+        var message = document.createElement('p');
+        message.textContent = 'No fue posible cargar el texto desde las fuentes disponibles. Para proteger la exactitud bíblica, no mostraremos versículos inventados. Comprueba tu conexión a Internet e inténtalo de nuevo.';
+        message.style.cssText = 'font-size:.9rem;line-height:1.5;margin:0 0 14px;';
+        var retry = document.createElement('button');
+        retry.type = 'button';
+        retry.textContent = 'Reintentar carga';
+        retry.style.cssText = 'background:#92400e;color:#fff;padding:10px 16px;border:0;border-radius:10px;font-weight:700;cursor:pointer;';
+        retry.addEventListener('click', function () { window.location.reload(); });
+        notice.append(title, message, retry);
+        audio.insertAdjacentElement('afterend', notice);
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { checkChapterAvailability(); setInterval(checkChapterAvailability, 1000); });
+      else { checkChapterAvailability(); setInterval(checkChapterAvailability, 1000); }
+    })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-tts-v2.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CUjaiqmd.css">
+  </head>
+  <body><div id="root"></div></body>
+</html>
