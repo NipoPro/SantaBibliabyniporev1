@@ -1,0 +1,26 @@
+{
+  "short_name": "Biblia BYNIPO",
+  "name": "Santa Biblia Reina Valera 1960 — BYNIPO",
+  "description": "Lectura bíblica por voz, búsqueda temática y juegos bíblicos. Para cargar capítulos completos se requiere conexión a Internet.",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./",
+  "background_color": "#12100d",
+  "theme_color": "#b45309",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "./",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": [
+    "books",
+    "education",
+    "lifestyle"
+  ]
+}
